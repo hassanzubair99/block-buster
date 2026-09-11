@@ -1,0 +1,7 @@
+{
+  "name": "Block Match 3D",
+  "description": "A vibrant isometric 3D block puzzle match-3 game featuring cute expressive faces, toy-block physics, combos, and tactile tactile animations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
