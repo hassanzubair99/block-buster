@@ -126,8 +126,16 @@ export const StartScreen: React.FC<StartScreenProps> = ({
           <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500">
             BLOCK MATCH 3D
           </h1>
-          <p className="text-xs sm:text-sm font-bold text-stone-500 tracking-wider uppercase mt-1">
-            Tactile 3D Cube Puzzle
+          <div className="flex items-center justify-center gap-1.5 mt-1.5 flex-wrap">
+            <span className="text-[11px] font-black px-2 py-0.5 rounded-full bg-amber-400 text-stone-900 shadow-sm">
+              120 LEVELS
+            </span>
+            <span className="text-[11px] font-black px-2 py-0.5 rounded-full bg-slate-900 text-cyan-300 border border-slate-700 shadow-sm">
+              DARK BOX ARENA
+            </span>
+          </div>
+          <p className="text-xs font-bold text-stone-500 tracking-wider uppercase mt-1">
+            Dynamic 3D Arenas • 6x6 to 10x10 Grids
           </p>
         </div>
 

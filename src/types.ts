@@ -30,6 +30,7 @@ export interface LevelConfig {
   maxMoves: number;
   targetScore: number;
   targetType: TargetType;
+  difficulty?: 'easy' | 'medium' | 'hard' | 'boss';
   targetGoals?: Partial<Record<BlockColor | 'ice' | 'crate', number>>;
   starThresholds: [number, number, number];
   initialObstacles?: { row: number; col: number; type: ObstacleType; hp?: number }[];

@@ -12,6 +12,7 @@ interface GameBoard3DProps {
   particles: Particle[];
   screenShake: boolean;
   hintBlocks: Block[];
+  isDarkBox?: boolean;
 }
 
 export const GameBoard3D: React.FC<GameBoard3DProps> = ({
@@ -24,6 +25,7 @@ export const GameBoard3D: React.FC<GameBoard3DProps> = ({
   particles,
   screenShake,
   hintBlocks,
+  isDarkBox = true,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState<number>(440);
@@ -37,7 +39,7 @@ export const GameBoard3D: React.FC<GameBoard3DProps> = ({
     const updateSize = () => {
       if (containerRef.current) {
         const w = containerRef.current.clientWidth;
-        setContainerWidth(Math.max(300, Math.min(w, 580)));
+        setContainerWidth(Math.max(300, Math.min(w, 640)));
       }
     };
     updateSize();
@@ -46,13 +48,11 @@ export const GameBoard3D: React.FC<GameBoard3DProps> = ({
     return () => observer.disconnect();
   }, []);
 
-  // Compute optimal block size so entire isometric diamond fits comfortably
+  // Compute optimal block size so entire isometric diamond fits comfortably (supports up to 10x10 grids)
   const blockSize = useMemo(() => {
-    // Width span in tiles is (rows + cols) * 0.5
-    // For 7x7: 7 spans. If container is 360px: 360 / 7 ~ 51px.
     const maxSpans = (rows + cols) * 0.52;
-    const targetSize = Math.floor((containerWidth - 32) / maxSpans);
-    return Math.max(38, Math.min(64, targetSize));
+    const targetSize = Math.floor((containerWidth - 36) / maxSpans);
+    return Math.max(26, Math.min(62, targetSize));
   }, [containerWidth, rows, cols]);
 
   const tileW = blockSize;
@@ -148,14 +148,15 @@ export const GameBoard3D: React.FC<GameBoard3DProps> = ({
 
   // Points for the 3D isometric platform base
   const platformPoints = useMemo(() => {
-    const pTop = { x: boardCenterX, y: boardTopY - 4 };
-    const pRight = { x: boardCenterX + cols * (tileW / 2) + 12, y: boardTopY + cols * (tileH / 2) };
-    const pBottom = { x: boardCenterX + (cols - rows) * (tileW / 2), y: boardTopY + (cols + rows) * (tileH / 2) + 8 };
-    const pLeft = { x: boardCenterX - rows * (tileW / 2) - 12, y: boardTopY + rows * (tileH / 2) };
+    const margin = tileW * 0.44;
+    const pTop = { x: boardCenterX, y: boardTopY - margin * 0.45 };
+    const pRight = { x: boardCenterX + cols * (tileW / 2) + margin, y: boardTopY + cols * (tileH / 2) };
+    const pBottom = { x: boardCenterX + (cols - rows) * (tileW / 2), y: boardTopY + (cols + rows) * (tileH / 2) + margin * 0.5 + 8 };
+    const pLeft = { x: boardCenterX - rows * (tileW / 2) - margin, y: boardTopY + rows * (tileH / 2) };
 
     const topFace = `${pTop.x},${pTop.y} ${pRight.x},${pRight.y} ${pBottom.x},${pBottom.y} ${pLeft.x},${pLeft.y}`;
-    const leftSide = `${pLeft.x},${pLeft.y} ${pBottom.x},${pBottom.y} ${pBottom.x},${pBottom.y + 24} ${pLeft.x},${pLeft.y + 24}`;
-    const rightSide = `${pBottom.x},${pBottom.y} ${pRight.x},${pRight.y} ${pRight.x},${pRight.y + 24} ${pBottom.x},${pBottom.y + 24}`;
+    const leftSide = `${pLeft.x},${pLeft.y} ${pBottom.x},${pBottom.y} ${pBottom.x},${pBottom.y + 26} ${pLeft.x},${pLeft.y + 26}`;
+    const rightSide = `${pBottom.x},${pBottom.y} ${pRight.x},${pRight.y} ${pRight.x},${pRight.y + 26} ${pBottom.x},${pBottom.y + 26}`;
 
     return { topFace, leftSide, rightSide, pBottom };
   }, [boardCenterX, boardTopY, rows, cols, tileW, tileH]);
@@ -179,22 +180,38 @@ export const GameBoard3D: React.FC<GameBoard3DProps> = ({
       >
         {/* 3D Isometric Pedestal / Floating Platform */}
         <svg
-          className="absolute inset-0 pointer-events-none filter drop-shadow-xl"
+          className="absolute inset-0 pointer-events-none filter drop-shadow-2xl"
           width={totalBoardWidth}
           height={totalBoardHeight}
           viewBox={`0 0 ${totalBoardWidth} ${totalBoardHeight}`}
         >
           <defs>
-            <linearGradient id="pedestal-top" x1="0%" y1="0%" x2="100%" y2="100%">
+            {/* Dark Color Box Gradients for high contrast */}
+            <linearGradient id="pedestal-top-dark" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#1E2536" />
+              <stop offset="50%" stopColor="#151B27" />
+              <stop offset="100%" stopColor="#0E121B" />
+            </linearGradient>
+            <linearGradient id="pedestal-side-left-dark" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#111622" />
+              <stop offset="100%" stopColor="#080B10" />
+            </linearGradient>
+            <linearGradient id="pedestal-side-right-dark" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#0C1019" />
+              <stop offset="100%" stopColor="#05070B" />
+            </linearGradient>
+
+            {/* Light Theme Fallback Gradients */}
+            <linearGradient id="pedestal-top-light" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#FFFBEB" />
               <stop offset="50%" stopColor="#FEF3C7" />
               <stop offset="100%" stopColor="#FDE68A" />
             </linearGradient>
-            <linearGradient id="pedestal-side-left" x1="0%" y1="0%" x2="0%" y2="100%">
+            <linearGradient id="pedestal-side-left-light" x1="0%" y1="0%" x2="0%" y2="100%">
               <stop offset="0%" stopColor="#F59E0B" />
               <stop offset="100%" stopColor="#D97706" />
             </linearGradient>
-            <linearGradient id="pedestal-side-right" x1="0%" y1="0%" x2="0%" y2="100%">
+            <linearGradient id="pedestal-side-right-light" x1="0%" y1="0%" x2="0%" y2="100%">
               <stop offset="0%" stopColor="#D97706" />
               <stop offset="100%" stopColor="#B45309" />
             </linearGradient>
@@ -204,43 +221,62 @@ export const GameBoard3D: React.FC<GameBoard3DProps> = ({
           <ellipse
             cx={platformPoints.pBottom.x}
             cy={platformPoints.pBottom.y + 36}
-            rx={totalBoardWidth * 0.42}
+            rx={totalBoardWidth * 0.44}
             ry={totalBoardHeight * 0.16}
-            fill="rgba(60, 45, 20, 0.14)"
+            fill={isDarkBox ? "rgba(0, 0, 0, 0.45)" : "rgba(60, 45, 20, 0.14)"}
             filter="blur(14px)"
           />
 
           {/* Pedestal Left Extruded Face */}
-          <polygon points={platformPoints.leftSide} fill="url(#pedestal-side-left)" />
+          <polygon
+            points={platformPoints.leftSide}
+            fill={isDarkBox ? "url(#pedestal-side-left-dark)" : "url(#pedestal-side-left-light)"}
+          />
 
           {/* Pedestal Right Extruded Face */}
-          <polygon points={platformPoints.rightSide} fill="url(#pedestal-side-right)" />
+          <polygon
+            points={platformPoints.rightSide}
+            fill={isDarkBox ? "url(#pedestal-side-right-dark)" : "url(#pedestal-side-right-light)"}
+          />
 
           {/* Pedestal Top Face */}
           <polygon
             points={platformPoints.topFace}
-            fill="url(#pedestal-top)"
-            stroke="#FBBF24"
-            strokeWidth="3"
+            fill={isDarkBox ? "url(#pedestal-top-dark)" : "url(#pedestal-top-light)"}
+            stroke={isDarkBox ? "#38BDF8" : "#FBBF24"}
+            strokeWidth={isDarkBox ? "1.8" : "3"}
+            strokeOpacity={isDarkBox ? "0.6" : "1"}
             strokeLinejoin="round"
           />
 
-          {/* Grid lines / Pegs on pedestal floor */}
+          {/* Recessed Isometric Diamond Sockets on pedestal floor for high contrast */}
           {Array.from({ length: rows }).map((_, r) =>
             Array.from({ length: cols }).map((_, c) => {
               const { x, y } = getIsoCoords(r, c);
               const cx = boardCenterX + x;
               const cy = boardTopY + y + tileH / 2;
+              const dTop = `${cx},${cy - tileH * 0.45}`;
+              const dRight = `${cx + tileW * 0.45},${cy}`;
+              const dBottom = `${cx},${cy + tileH * 0.45}`;
+              const dLeft = `${cx - tileW * 0.45},${cy}`;
+
               return (
-                <ellipse
-                  key={`floor-dot-${r}-${c}`}
-                  cx={cx}
-                  cy={cy}
-                  rx={tileW * 0.1}
-                  ry={tileH * 0.1}
-                  fill="#F59E0B"
-                  opacity="0.35"
-                />
+                <g key={`floor-socket-${r}-${c}`}>
+                  <polygon
+                    points={`${dTop} ${dRight} ${dBottom} ${dLeft}`}
+                    fill={isDarkBox ? "rgba(10, 14, 23, 0.8)" : "rgba(245, 158, 11, 0.1)"}
+                    stroke={isDarkBox ? "rgba(255, 255, 255, 0.08)" : "rgba(245, 158, 11, 0.25)"}
+                    strokeWidth="1.2"
+                  />
+                  <ellipse
+                    cx={cx}
+                    cy={cy}
+                    rx={tileW * 0.08}
+                    ry={tileH * 0.08}
+                    fill={isDarkBox ? "#38BDF8" : "#F59E0B"}
+                    opacity={isDarkBox ? "0.3" : "0.35"}
+                  />
+                </g>
               );
             })
           )}

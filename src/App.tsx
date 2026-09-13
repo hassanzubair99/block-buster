@@ -61,6 +61,28 @@ export default function App() {
     Partial<Record<BlockColor | 'ice' | 'crate', number>>
   >({});
 
+  // Dark Color Box stage state for high contrast (defaults to true)
+  const [isDarkBox, setIsDarkBox] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('bm3d_darkbox');
+      return saved !== null ? saved === 'true' : true;
+    } catch {
+      return true;
+    }
+  });
+
+  const handleToggleDarkBox = useCallback(() => {
+    setIsDarkBox((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('bm3d_darkbox', String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  }, []);
+
   // Visual FX: Particles & Floating Texts
   const [particles, setParticles] = useState<Particle[]>([]);
   const [floatingTexts, setFloatingTexts] = useState<FloatingTextItem[]>([]);
@@ -347,31 +369,26 @@ export default function App() {
         sound.playCrateBreak();
       }
 
-      // Update goal items remaining
-      setGoalItemsRemaining((prev) => {
-        const updated = { ...prev };
-        // If collecting colors
-        if (currentLevel.targetType === 'collect_colors') {
-          blocksToClear.forEach((b) => {
-            if (updated[b.color] && updated[b.color]! > 0) {
-              updated[b.color] = updated[b.color]! - 1;
-            }
-          });
-        }
-        // If breaking ice
-        if (currentLevel.targetType === 'break_ice' && iceCleared.length > 0) {
-          if (updated.ice !== undefined) {
-            updated.ice = Math.max(0, updated.ice - iceCleared.length);
+      // Update goal items remaining immediately
+      const updatedGoals = { ...goalItemsRemaining };
+      if (currentLevel.targetType === 'collect_colors') {
+        blocksToClear.forEach((b) => {
+          if (updatedGoals[b.color] && updatedGoals[b.color]! > 0) {
+            updatedGoals[b.color] = updatedGoals[b.color]! - 1;
           }
+        });
+      }
+      if (currentLevel.targetType === 'break_ice' && iceCleared.length > 0) {
+        if (updatedGoals.ice !== undefined) {
+          updatedGoals.ice = Math.max(0, updatedGoals.ice - iceCleared.length);
         }
-        // If clearing crates
-        if (currentLevel.targetType === 'clear_crates' && cratesDamaged.length > 0) {
-          if (updated.crate !== undefined) {
-            updated.crate = Math.max(0, updated.crate - cratesDamaged.length);
-          }
+      }
+      if (currentLevel.targetType === 'clear_crates' && cratesDamaged.length > 0) {
+        if (updatedGoals.crate !== undefined) {
+          updatedGoals.crate = Math.max(0, updatedGoals.crate - cratesDamaged.length);
         }
-        return updated;
-      });
+      }
+      setGoalItemsRemaining(updatedGoals);
 
       // Mark matched blocks for pop animation
       const clearIds = new Set(blocksToClear.map((b) => b.id));
@@ -429,21 +446,20 @@ export default function App() {
         setTimeout(() => {
           setIsProcessing(false);
 
-          // Evaluate Win Condition
+          // Evaluate Win Condition against updatedGoals
           let isLevelWon = false;
           if (currentLevel.targetType === 'score') {
             isLevelWon = newScore >= currentLevel.targetScore;
           } else if (currentLevel.targetType === 'collect_colors') {
-            // Check if all goals are 0
             isLevelWon =
               currentLevel.targetGoals !== undefined &&
               Object.keys(currentLevel.targetGoals).every(
-                (k) => (goalItemsRemaining[k as BlockColor] ?? 0) <= 0
+                (k) => (updatedGoals[k as BlockColor] ?? 0) <= 0
               );
           } else if (currentLevel.targetType === 'break_ice') {
-            isLevelWon = (goalItemsRemaining.ice ?? 1) <= 0;
+            isLevelWon = (updatedGoals.ice ?? 1) <= 0;
           } else if (currentLevel.targetType === 'clear_crates') {
-            isLevelWon = (goalItemsRemaining.crate ?? 1) <= 0;
+            isLevelWon = (updatedGoals.crate ?? 1) <= 0;
           }
 
           if (isLevelWon) {
@@ -673,23 +689,97 @@ export default function App() {
             score={score}
             movesRemaining={movesRemaining}
             onPauseClick={() => setScreen('paused')}
+            onOpenLevels={() => setScreen('levels')}
             targetProgressPercent={targetProgressPercent}
             starsEarned={starsEarned}
           />
 
-          {/* 3D Isometric Game Board */}
-          <div className="flex-1 flex items-center justify-center py-2 overflow-visible">
-            <GameBoard3D
-              grid={grid}
-              selectedCluster={selectedCluster}
-              hoveredCluster={hoveredCluster}
-              onBlockClick={handleBlockClick}
-              onBlockHover={handleBlockHover}
-              floatingTexts={floatingTexts}
-              particles={particles}
-              screenShake={screenShake}
-              hintBlocks={hintBlocks}
-            />
+          {/* 3D Isometric Game Board - Contained inside the Dark Color Box Stage for Maximum Color Contrast */}
+          <div className="flex-1 flex flex-col items-center justify-center py-2 px-1.5 sm:px-3 overflow-visible w-full">
+            <div
+              className={`relative w-full max-w-xl mx-auto rounded-3xl p-3 sm:p-4 transition-all duration-300 shadow-2xl flex flex-col items-center overflow-visible border-2 ${
+                isDarkBox
+                  ? 'bg-gradient-to-b from-[#161B26] via-[#10141E] to-[#0A0D14] border-slate-700/80 shadow-black/70 text-white'
+                  : 'bg-gradient-to-b from-amber-50 via-orange-50/60 to-amber-100/40 border-amber-200/80 shadow-amber-900/10 text-stone-800'
+              }`}
+            >
+              {/* Dark Stage Top Info Bar */}
+              <div
+                className={`w-full flex items-center justify-between pb-2 mb-1 text-[11px] font-bold border-b ${
+                  isDarkBox ? 'border-slate-800 text-slate-300' : 'border-amber-200/80 text-stone-600'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setScreen('levels')}
+                    className="flex items-center gap-1.5 hover:opacity-80 cursor-pointer active:scale-95 transition-all text-left"
+                    title="Change Level"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block" />
+                    <span className={`font-black text-xs ${isDarkBox ? 'text-white' : 'text-stone-800'}`}>
+                      {currentLevel.name}
+                    </span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  {/* Grid dimensions and block area */}
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                      isDarkBox
+                        ? 'bg-slate-800/90 text-amber-300 border-slate-700'
+                        : 'bg-amber-100 text-amber-900 border-amber-300'
+                    }`}
+                  >
+                    {currentLevel.rows}x{currentLevel.cols} ({currentLevel.rows * currentLevel.cols} Blocks)
+                  </span>
+
+                  {/* Difficulty badge */}
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase text-white shadow-sm ${
+                      currentLevel.difficulty === 'boss'
+                        ? 'bg-purple-600'
+                        : currentLevel.difficulty === 'hard'
+                        ? 'bg-rose-500'
+                        : currentLevel.difficulty === 'medium'
+                        ? 'bg-amber-500'
+                        : 'bg-emerald-600'
+                    }`}
+                  >
+                    {currentLevel.difficulty || 'Easy'}
+                  </span>
+
+                  {/* Dark Color Box Toggle Button */}
+                  <button
+                    onClick={handleToggleDarkBox}
+                    title={isDarkBox ? 'Switch to Light Stage' : 'Switch to High-Contrast Dark Box'}
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all cursor-pointer active:scale-95 ${
+                      isDarkBox
+                        ? 'bg-slate-800 text-cyan-300 border-cyan-500/40 hover:bg-slate-700'
+                        : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100'
+                    }`}
+                  >
+                    {isDarkBox ? '🌙 Dark Box' : '☀️ Light Box'}
+                  </button>
+                </div>
+              </div>
+
+              {/* 3D Isometric Board */}
+              <div className="w-full flex items-center justify-center overflow-visible">
+                <GameBoard3D
+                  grid={grid}
+                  selectedCluster={selectedCluster}
+                  hoveredCluster={hoveredCluster}
+                  onBlockClick={handleBlockClick}
+                  onBlockHover={handleBlockHover}
+                  floatingTexts={floatingTexts}
+                  particles={particles}
+                  screenShake={screenShake}
+                  hintBlocks={hintBlocks}
+                  isDarkBox={isDarkBox}
+                />
+              </div>
+            </div>
           </div>
 
           <BottomHUD

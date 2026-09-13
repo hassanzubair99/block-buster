@@ -7,6 +7,7 @@ interface TopHUDProps {
   score: number;
   movesRemaining: number;
   onPauseClick: () => void;
+  onOpenLevels?: () => void;
   targetProgressPercent: number;
   starsEarned: number;
 }
@@ -16,6 +17,7 @@ export const TopHUD: React.FC<TopHUDProps> = ({
   score,
   movesRemaining,
   onPauseClick,
+  onOpenLevels,
   targetProgressPercent,
   starsEarned,
 }) => {
@@ -26,9 +28,13 @@ export const TopHUD: React.FC<TopHUDProps> = ({
       {/* Top row: Level title & Pause button */}
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-2">
-          <div className="bg-amber-400 text-amber-950 font-bold px-3 py-1 rounded-xl text-xs sm:text-sm shadow-sm border border-amber-300 tracking-wider">
+          <button
+            onClick={onOpenLevels}
+            title="Open Level Selection"
+            className="bg-amber-400 hover:bg-amber-300 text-amber-950 font-black px-3 py-1 rounded-xl text-xs sm:text-sm shadow-sm border border-amber-300 tracking-wider cursor-pointer active:scale-95 transition-all"
+          >
             LEVEL {String(level.id).padStart(2, '0')}
-          </div>
+          </button>
           <h1 className="text-stone-800 font-bold text-sm sm:text-base truncate max-w-[180px] sm:max-w-xs drop-shadow-sm">
             {level.name}
           </h1>
